@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>DR v2</title>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+</head>
+
+<body>
+
+<script type="text/javascript">
+function orangesScatter() {
+    var chartScatter = {};
+
+    var width = 600,
+        height = 500,
+        margin = {top: 30, bottom: 30, left: 30, right: 30},
+        radius = 10,
+        mode = "MLE",
+        duration = 1000,
+        xSca = d3.scale.linear(),
+        ySca = d3.scale.linear(),
+        bodyScatter,
+        data,
+        svg;
+
+    chartScatter.render = function() {
+        if (!svg) {
+            svg = d3.select("body").append("svg")
+                .attr("height", height)
+                .attr("width", width);
+        }
+
+        renderBodyScatter(svg);
+    };
+
+    function renderBodyScatter(svg) {
+        if (!bodyScatter) {
+            bodyScatter = svg.append("g")
+                .attr("class", "bodyScatter")
+                .attr("transform", "translate("
+                    + xStart() + ","
+                    + yEnd() + ")");
+        };
+
+        renderDots();
+    }
+
+    function renderDots() {
+        bodyScatter.selectAll("circle")
+            .data(data)
+          .enter()
+          .append("circle")
+            .call(circleAttributes)
+            .call(events)
+            .call(markers);
+
+
+        bodyScatter.selectAll("circle")
+            .data(data)
+            .call(circleAttributes);
+    }
+
+    function circleAttributes(selection) {
+        selection.attr("class", function (d, i) {
+                orangeClass = d.class === 1 ? "sound" : "decay";
+                sampleClass = "num" + i;
+                return sampleClass + " " + orangeClass;
+            })
+          .transition().duration(duration)
+            .attr("cx", function (d) { return cx(d); })
+            .attr("cy", function (d) { return cy(d); })
+            .attr("r", radius);
+
+        return selection;
+    }
+
+    function markers(selection) {
+        selection.on("mouseover.markers", function() {
+            // Lines markers
+            var circle = d3.select(this);
+            var cx = circle.attr("cx"),
+                cy = circle.attr("cy");
+
+            var line = d3.svg.line()
+                .x(function(d) { return d.x; })
+                .y(function(d) { return d.y; });
+
+            var verticalLine = [{x: cx, y: cy},
+                                {x: cx, y: yStart()}],
+                horizontalLine = [{x: cx, y: cy},
+                                {x: xStart(), y: cy}];
+
+            d3.select(".bodyScatter")
+                .append("path")
+                .attr("d", line(verticalLine))
+                .style("fill", "none")
+                .style("stroke-width", 1)
+                .style("stroke", "green");
+
+            d3.select(".bodyScatter")
+                .append("path")
+                .attr("d", line(horizontalLine))
+                .style("fill", "none")
+                .style("stroke-width", 1)
+                .style("stroke", "green");
+        });
+    }
+
+    function cx(d) {
+        var array = mode === "MLE" ? d.MLE : d.hiperspec;
+        return xSca(array[0]);
+    }
+
+    function cy(d) {
+        var array = mode === "MLE" ? d.MLE : d.hiperspec;
+        return ySca(array[1]);
+    }
+
+    function xStart() {
+        return margin.left;
+    }
+
+    function xEnd() {
+        return width - margin.right;
+    }
+
+    function yStart() {
+        return height - margin.bottom;
+    }
+
+    function yEnd() {
+        return margin.top;
+    }
+
+    function xSpan() {
+        return width - margin.left - margin.right;
+    }
+
+    function ySpan() {
+        return height - margin.top - margin.bottom;
+    }
+
+    function setScales() {
+        xSca.domain([0, 1])
+            .range([0, xSpan()]);
+
+        ySca.domain([0, 1])
+            .range([ySpan(), 0]);
+    }
+
+    chartScatter.width = function(w) {
+        if (!arguments.length) return width;
+        width = w;
+        return chartScatter;
+    };
+
+    chartScatter.height = function(h) {
+        if (!arguments.length) return height;
+        height = h;
+        return chartScatter;
+    };
+
+    chartScatter.addData = function (value) {
+        if (!arguments.length) return data;
+        data = value;
+
+        setScales();
+
+        return chartScatter;
+    };
+
+    chartScatter.updateChart = function (dataset) {
+        if (!arguments.length) return mode;
+        mode = dataset;
+
+        renderDots();
+
+        return chartScatter;
+    }
+
+    return chartScatter;
+}
+
+
+function orangesLines() {
+    var chartLines = {};
+
+    var width = 600,
+        height = 500,
+        margin = {top: 30, bottom: 30, left: 30, right: 30},
+        radius = 10,
+        xSca = d3.scale.linear(),
+        ySca = d3.scale.linear(),
+        bodyLines,
+        data,
+        svg;
+
+    chartLines.render = function() {
+        if (!svg) {
+            svg = d3.select("body").append("svg")
+                .attr("height", height)
+                .attr("width", width)
+                .attr("class", "lines");
+        }
+
+        renderBodyLines(svg);
+    };
+
+    function renderBodyLines(svg) {
+        if (!bodyLines) {
+            bodyLines = svg.append("g")
+                .attr("class", "bodyLines")
+                .attr("transform", "translate("
+                    + xStart() + ","
+                    + yEnd() + ")");
+        }
+
+        renderLines();
+    }
+
+    function renderLines() {
+        var line = d3.svg.line()
+            .x(function(d, i) { return xSca(i); })
+            .y(function(d) { return ySca(d); });
+
+        bodyLines.selectAll("path.line")
+            .data(data)
+          .enter()
+            .append("path")
+            .attr("d", function(d) { return line(d); } )
+            .attr("class", function(d, i) { return "num" + i})
+            .style("fill", "none")
+            .style("stroke-width", 1)
+            .style("stroke", "black")
+            .call(events);
+    }
+
+    function xStart() {
+        return margin.left;
+    }
+
+    function xEnd() {
+        return width - margin.right;
+    }
+
+    function yStart() {
+        return height - margin.bottom;
+    }
+
+    function yEnd() {
+        return margin.top;
+    }
+
+    function xSpan() {
+        return width - margin.left - margin.right;
+    }
+
+    function ySpan() {
+        return height - margin.top - margin.bottom;
+    }
+
+    function setScales() {
+        xSca.domain([0, data[0].length])
+            .range([0, xSpan()]);
+
+        var minY = data.reduce(function(prev, curr) {
+            return Math.min.apply(null, curr) < Math.min.apply(null, prev)? [Math.min.apply(null, curr)]: [Math.min.apply(null, prev)]; }, [9999]);
+        var maxY = data.reduce(function(prev, curr) {
+            return Math.max.apply(null, curr) > Math.max.apply(null, prev)? [Math.max.apply(null, curr)]: [Math.max.apply(null, prev)]; }, [0]);
+        ySca.domain([minY, maxY])
+            .range([ySpan(), 0]);
+    }
+
+    chartLines.width = function(w) {
+        if (!arguments.length) return width;
+        width = w;
+        return chartLines;
+    };
+
+    chartLines.height = function(h) {
+        if (!arguments.length) return height;
+        height = h;
+        return chartLines;
+    };
+
+    chartLines.addData = function (value) {
+        if (!arguments.length) return data;
+        data = value;
+
+        setScales();
+
+        return chartLines;
+    };
+
+    return chartLines;
+
+}
+
+
+function events(selection) {
+    selection.on("mouseover", function() {
+        var target = d3.select(this).attr("class").split(" ")[0];
+
+        d3.selectAll(".bodyScatter ." + target)
+            .attr("r", 13);
+
+        d3.selectAll(".bodyLines ." + target)
+            .style("stroke-width", 3);
+
+    })
+    .on("mouseout", function() {
+        var target = d3.select(this).attr("class").split(" ")[0];
+
+        d3.selectAll(".bodyScatter ." + target)
+            .attr("r", 10);
+
+        d3.selectAll(".bodyLines ." + target)
+            .style("stroke-width", 1);
+    })
+
+    return selection;
+}
+
+
+
+var scatter = orangesScatter();
+var lines = orangesLines();
+
+d3.json("data/OrangesData.json", function(error, data) {
+    if (error) console.log("Data loading error!");
+
+    scatter.addData(data);
+    scatter.render();
+
+    var dataLine = data.map( function(d) { return d.hiperspec; });
+    var subsampleData = dataLine.map( function(d) {
+        var filtered = d.filter( function(d,i) { return (i % 2) === 0; })
+        return filtered;
+    });
+
+    lines.addData(subsampleData);
+    //lines.render();
+});
+
+
+</script>
+
+</body>
+
+</html>
